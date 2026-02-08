@@ -49,7 +49,8 @@ function CalendarPage() {
   const [events, setEvents] = useState([]); // Displayed events (recurring instances)
   const [rawSchedules, setRawSchedules] = useState([]); // Raw weekly schedules from API
 
-  const [users, setUsers] = useState([]); // Teachers
+  // Fixed teacher list for scheduling
+  const [users, setUsers] = useState([{ id: 1, name: "Jessie Aneslagon" }]); // Teachers
   const [classes, setClasses] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -92,7 +93,18 @@ function CalendarPage() {
         const roomsData = await roomsRes.json();
         const subjectsData = await subjectsRes.json();
 
-        if (usersData.success) setUsers(usersData.data);
+        // Always ensure our fixed teacher exists in the dropdown
+        if (usersData.success && Array.isArray(usersData.data) && usersData.data.length > 0) {
+          // Try to find an existing user that matches Jessie; if not, keep the fixed one
+          const jessie = usersData.data.find(u => (u.name || '').toLowerCase() === 'jessie aneslagon');
+          if (jessie) {
+            setUsers([{ id: jessie.id, name: jessie.name }]);
+          } else {
+            setUsers([{ id: 1, name: "Jessie Aneslagon" }]);
+          }
+        } else {
+          setUsers([{ id: 1, name: "Jessie Aneslagon" }]);
+        }
         if (classesData.success) setClasses(classesData.data);
         if (roomsData.success) setRooms(roomsData.data);
         if (subjectsData.success) setSubjects(subjectsData.data);
@@ -118,63 +130,35 @@ function CalendarPage() {
     }
   };
 
-  // Generate Events from Raw Schedules based on View Range
+  // Generate Events from Raw Schedules using their actual datetime range
+  // This shows each schedule only on its real date/time, not repeated
   useEffect(() => {
     if (!rawSchedules.length) {
       setEvents([]);
       return;
     }
 
-    let start, end;
-    if (currentView === 'month') {
-      start = startOfMonth(currentDate);
-      end = endOfMonth(currentDate);
-      // Adjust to full weeks to cover visible grid
-      start = startOfWeek(start, { weekStartsOn: 1 });
-      end = endOfWeek(end, { weekStartsOn: 1 });
-    } else if (currentView === 'week') {
-      start = startOfWeek(currentDate, { weekStartsOn: 1 });
-      end = endOfWeek(currentDate, { weekStartsOn: 1 });
-    } else { // day
-      start = currentDate;
-      end = currentDate;
-    }
+    const generatedEvents = rawSchedules
+      .filter(s => s.datetime_start && s.datetime_end)
+      .map(s => {
+        const eventStart = new Date(s.datetime_start);
+        const eventEnd = new Date(s.datetime_end);
 
-    const generatedEvents = [];
-    let loopDate = new Date(start);
-
-    while (loopDate <= end) {
-      const dayName = format(loopDate, 'EEE'); // Mon, Tue, ...
-
-      const daySchedules = rawSchedules.filter(s => s.day_of_week === dayName);
-
-      daySchedules.forEach(s => {
-        // Parse time strings "10:00:00" -> Date on loopDate
-        const [startH, startM] = s.start_time.split(':');
-        const [endH, endM] = s.end_time.split(':');
-
-        const eventStart = new Date(loopDate);
-        eventStart.setHours(parseInt(startH), parseInt(startM), 0);
-
-        const eventEnd = new Date(loopDate);
-        eventEnd.setHours(parseInt(endH), parseInt(endM), 0);
-
-        generatedEvents.push({
-          id: s.id, // Schedule ID
-          title: s.description || `${s.subject?.subject_code || 'Subject'} (${s.room?.room_code || s.room?.room_name || 'Room'})`,
+        return {
+          id: s.id,
+          title:
+            s.description ||
+            `${s.subject?.subject_code || 'Subject'} (${s.room?.room_code || s.room?.room_name || 'Room'})`,
           start: eventStart,
           end: eventEnd,
           resource: s,
           type: s.type,
-          allDay: false
-        });
+          allDay: false,
+        };
       });
 
-      loopDate = addDays(loopDate, 1);
-    }
     setEvents(generatedEvents);
-
-  }, [rawSchedules, currentDate, currentView]);
+  }, [rawSchedules]);
 
   const toggleSidebar = () => setCollapsed(!collapsed);
   const openMobileSidebar = () => setMobileSidebarOpen(true);
@@ -244,7 +228,9 @@ function CalendarPage() {
           setConflicts(conflictMsgs);
           Swal.fire("Conflict", "Schedule conflicts detected.", "warning");
         } else {
-          Swal.fire("Error", result.message || "Failed to save schedule.", "error");
+          console.error("Schedule save error", result);
+          const detail = result.error || result.message;
+          Swal.fire("Error", detail || "Failed to save schedule.", "error");
         }
       }
     } catch (error) {
@@ -254,14 +240,30 @@ function CalendarPage() {
 
   const handleSelectEvent = (event) => {
     const s = event.resource;
+    const teacherFromRelation = s.teacher?.name;
+    const teacherFromList = users.find(u => String(u.id) === String(s.teacher_id))?.name;
+    const teacherName = teacherFromRelation || teacherFromList || "Jessie Aneslagon";
+
+    // Format time to 12-hour am/pm
+    function formatTime12hr(t) {
+      if (!t) return '';
+      // Accepts 'HH:mm' or 'HH:mm:ss'
+      const [h, m] = t.split(':');
+      let hour = parseInt(h, 10);
+      const minute = parseInt(m, 10);
+      const ampm = hour >= 12 ? 'pm' : 'am';
+      hour = hour % 12;
+      if (hour === 0) hour = 12;
+      return `${hour}:${minute.toString().padStart(2, '0')} ${ampm}`;
+    }
     Swal.fire({
       title: "Schedule Details",
       html: `
         <p><strong>Subject:</strong> ${s.subject?.subject_code} - ${s.subject?.subject_name}</p>
-        <p><strong>Teacher:</strong> ${s.teacher?.name}</p>
+        <p><strong>Teacher:</strong> ${teacherName}</p>
         <p><strong>Room:</strong> ${s.room?.room_name} (${s.room?.room_code})</p>
         <p><strong>Class:</strong> ${s.school_class?.course} ${s.school_class?.level}-${s.school_class?.section}</p>
-        <p><strong>Time:</strong> ${s.start_time} - ${s.end_time}</p>
+        <p><strong>Time:</strong> ${formatTime12hr(s.start_time)} - ${formatTime12hr(s.end_time)}</p>
         <p><strong>Day:</strong> ${s.day_of_week}</p>
       `,
       showCancelButton: true,

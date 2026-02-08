@@ -11,6 +11,7 @@ use App\Services\ScheduleConflictService;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 
 class ScheduleController extends Controller
 {
@@ -19,6 +20,33 @@ class ScheduleController extends Controller
     public function __construct(ScheduleConflictService $conflictService)
     {
         $this->conflictService = $conflictService;
+    }
+
+    /**
+     * Normalize schedule type coming from the UI.
+     * Old schema uses numeric codes (0,1,2); new UI sends strings like "Lecture".
+     */
+    private function normalizeType($type)
+    {
+        if (is_null($type) || $type === '') {
+            return 0; // default Regular/Lecture
+        }
+
+        if (is_numeric($type)) {
+            return (int) $type;
+        }
+
+        $map = [
+            'lecture' => 0,
+            'regular class' => 0,
+            'lab' => 1,
+            'laboratory' => 1,
+            'exam' => 2,
+            'test' => 2,
+        ];
+
+        $key = strtolower(trim($type));
+        return $map[$key] ?? 0;
     }
 
     public function index(Request $request)
@@ -46,13 +74,14 @@ class ScheduleController extends Controller
         $validated = $request->validate([
             'class_id' => 'required|exists:class,id',
             'subject_id' => 'required|exists:subjects,id',
-            'teacher_id' => 'required|exists:users,id',
+            // For simple scheduling, accept any numeric teacher_id (no users table entry required)
+            'teacher_id' => 'required|integer',
             'room_id' => 'required|exists:rooms,id',
             'days' => 'required|array', // ['Mon', 'Wed']
             'days.*' => 'in:Mon,Tue,Wed,Thu,Fri,Sat,Sun',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
-            'type' => 'nullable|string',
+            'type' => 'nullable',
             'description' => 'nullable|string',
         ]);
 
@@ -62,6 +91,16 @@ class ScheduleController extends Controller
         DB::beginTransaction();
         try {
             foreach ($validated['days'] as $day) {
+                $typeValue = $this->normalizeType($validated['type'] ?? null);
+                // Build helper datetimes for legacy columns
+                $weekdayMap = ['Mon' => 1, 'Tue' => 2, 'Wed' => 3, 'Thu' => 4, 'Fri' => 5, 'Sat' => 6, 'Sun' => 7];
+                $baseDate = Carbon::now()->startOfWeek(Carbon::MONDAY);
+                if (isset($weekdayMap[$day])) {
+                    $baseDate = (clone $baseDate)->addDays($weekdayMap[$day] - 1);
+                }
+
+                $datetimeStart = (clone $baseDate)->setTimeFromTimeString($validated['start_time']);
+                $datetimeEnd = (clone $baseDate)->setTimeFromTimeString($validated['end_time']);
                 // Check conflicts
                 $conflicts = $this->conflictService->checkConflict(
                     $day,
@@ -88,8 +127,10 @@ class ScheduleController extends Controller
                     'day_of_week' => $day,
                     'start_time' => $validated['start_time'],
                     'end_time' => $validated['end_time'],
-                    'type' => $validated['type'] ?? 'Lecture',
+                    'type' => $typeValue,
                     'description' => $validated['description'] ?? null,
+                    'datetime_start' => $datetimeStart,
+                    'datetime_end' => $datetimeEnd,
                 ]);
                 $createdSchedules[] = $schedule;
             }
@@ -122,12 +163,13 @@ class ScheduleController extends Controller
         $validated = $request->validate([
             'class_id' => 'exists:class,id',
             'subject_id' => 'exists:subjects,id',
-            'teacher_id' => 'exists:users,id',
+            // Allow updating teacher_id without requiring a users row
+            'teacher_id' => 'integer',
             'room_id' => 'exists:rooms,id',
             'day_of_week' => 'in:Mon,Tue,Wed,Thu,Fri,Sat,Sun',
             'start_time' => 'date_format:H:i',
             'end_time' => 'date_format:H:i|after:start_time',
-            'type' => 'nullable|string',
+            'type' => 'nullable',
             'description' => 'nullable|string',
         ]);
 
@@ -149,6 +191,10 @@ class ScheduleController extends Controller
         }
 
         $oldValues = $schedule->toArray();
+        if (array_key_exists('type', $validated)) {
+            $validated['type'] = $this->normalizeType($validated['type']);
+        }
+
         $schedule->update($validated);
         $msg = "Updated schedule ID {$id}: {$schedule->day_of_week} {$schedule->start_time}-{$schedule->end_time}";
         AuditLogService::log('update', 'schedules', $id, $msg, null, $request, $oldValues, $validated);

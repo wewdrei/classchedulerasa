@@ -19,8 +19,8 @@ class Schedule extends Model
         'end_time',
         'type',        // Lecture, Lab, Exam
         'description',
-        // 'datetime_start', // Deprecated
-        // 'datetime_end',   // Deprecated
+        'datetime_start',
+        'datetime_end',
     ];
 
     protected $casts = [
