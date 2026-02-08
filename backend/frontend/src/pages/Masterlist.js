@@ -9,7 +9,7 @@ import { Modal, Button, Form } from "react-bootstrap";
 import Swal from "sweetalert2";
 import { apiFetch } from "../utils/api";
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function Masterlist() {
   const user = sessionStorage.getItem("user") || "Guest";

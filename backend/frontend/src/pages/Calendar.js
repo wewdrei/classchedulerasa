@@ -95,7 +95,7 @@ function CalendarPage() {
   const [editScheduleId, setEditScheduleId] = useState(null);
   const [conflicts, setConflicts] = useState([]);
 
-  const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   const sidebarWidth = collapsed ? 80 : 250;
 
@@ -200,6 +200,30 @@ function CalendarPage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Time validation for Monday to Saturday
+    const selectedDays = formData.days;
+    const blockStart = name === "start_time" && selectedDays.some(day => ["Mon","Tue","Wed","Thu","Fri","Sat"].includes(day));
+    const blockEnd = name === "end_time" && selectedDays.some(day => ["Mon","Tue","Wed","Thu","Fri","Sat"].includes(day));
+    if (blockStart) {
+      const [hour, minute] = value.split(":").map(Number);
+      // Block start time at 21:00 (9 PM) and after
+      if (hour >= 21) {
+        Swal.fire("Error", "Start time for Mon-Sat must be before 9:00 PM.", "error");
+        return;
+      }
+    }
+    if (blockEnd) {
+      if (value === "00:00" || value === "23:59") {
+        Swal.fire("Error", "End time cannot be all day.", "error");
+        return;
+      }
+      const [hour, minute] = value.split(":").map(Number);
+      // Block end time at 6:30 AM and earlier
+      if ((hour < 6) || (hour === 6 && minute < 30)) {
+        Swal.fire("Error", "End time for Mon-Sat must be after 6:30 AM.", "error");
+        return;
+      }
+    }
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -356,6 +380,9 @@ function CalendarPage() {
         <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} toggleSidebar={toggleSidebar} openMobileSidebar={openMobileSidebar} />
         <div className="flex-grow-1 p-4">
           <div className="row">
+                              <div className="alert alert-info mb-3" style={{fontSize: '15px'}}>
+                                The class ends at 9:00 PM and resumes at 6:30 AM.
+                              </div>
             <div className="col-12 col-md-8 mb-4">
               <div className="card p-4 h-100">
                 <h4 className="mb-3">Weekly Schedule</h4>
@@ -473,7 +500,25 @@ function CalendarPage() {
                   </div>
 
                   <div className="d-flex gap-2">
-                    <button type="submit" className="btn btn-primary flex-grow-1">
+                    <button
+                      type="submit"
+                      className="btn btn-primary flex-grow-1"
+                      disabled={(() => {
+                        // Disable if start/end time is invalid
+                        const st = formData.start_time;
+                        const et = formData.end_time;
+                        if (!st || !et) return true;
+                        const [sh, sm] = st.split(":").map(Number);
+                        const [eh, em] = et.split(":").map(Number);
+                        // Start time must be 6:30 AM to 9:59 PM
+                        if ((sh > 21) || (sh < 6) || (sh === 6 && sm < 30)) return true;
+                        // End time must be 6:30 AM to 9:59 PM
+                        if ((eh > 21) || (eh < 6) || (eh === 6 && em < 30)) return true;
+                        // End time cannot be all day
+                        if (et === "00:00" || et === "23:59") return true;
+                        return false;
+                      })()}
+                    >
                       {editScheduleId ? "Update" : "Add Schedule"}
                     </button>
                     {editScheduleId && (

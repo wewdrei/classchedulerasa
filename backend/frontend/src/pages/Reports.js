@@ -128,9 +128,21 @@ function Reports() {
   const formatTime = (t) => {
     if (t == null || t === '') return '—';
     const s = String(t);
-    if (s.match(/^\d{2}:\d{2}/)) return s.substring(0, 5);
-    if (s.includes('T')) return s.split('T')[1]?.substring(0, 5) || '—';
-    return s.substring(0, 5) || '—';
+    let timeStr = '';
+    if (s.match(/^\d{2}:\d{2}/)) {
+      timeStr = s.substring(0, 5);
+    } else if (s.includes('T')) {
+      timeStr = s.split('T')[1]?.substring(0, 5) || '';
+    } else {
+      timeStr = s.substring(0, 5) || '';
+    }
+    if (!timeStr) return '—';
+    const [hour, minute] = timeStr.split(':').map(Number);
+    if (isNaN(hour) || isNaN(minute)) return '—';
+    let ampm = hour >= 12 ? 'PM' : 'AM';
+    let hour12 = hour % 12;
+    if (hour12 === 0) hour12 = 12;
+    return `${hour12}:${minute.toString().padStart(2, '0')} ${ampm}`;
   };
   const getClassLabel = (row) => {
     const c = row.school_class || row.schoolClass;
@@ -193,7 +205,7 @@ function Reports() {
                 <label className="form-label small fw-bold">Day</label>
                 <select className="form-select form-select-sm" name="day_of_week" value={filters.day_of_week} onChange={handleFilterChange}>
                   <option value="">All Days</option>
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => <option key={d} value={d}>{d}</option>)}
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
               <div className="col-md-2">

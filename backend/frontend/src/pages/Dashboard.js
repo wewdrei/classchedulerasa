@@ -112,7 +112,12 @@ function Dashboard() {
 
   // 2. User Roles
   const userRolesData = {
-    labels: userRoles.map(u => u.role),
+    labels: userRoles.map(u => {
+      const r = u.role.toUpperCase();
+      if (r === "SUPERADMIN") return "Manager";
+      if (r === "ADMIN") return "Staff";
+      return u.role;
+    }),
     datasets: [{
       label: 'Users by Role',
       data: userRoles.map(u => u.total),

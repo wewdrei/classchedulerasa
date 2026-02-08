@@ -53,6 +53,17 @@ function ClassesManagement() {
   const handleAddClass = async (e) => {
     e.preventDefault();
     try {
+      // Check for duplicate section+level+course
+      const duplicate = classes.find(
+        c =>
+          c.section.trim().toLowerCase() === formData.section.trim().toLowerCase() &&
+          c.level.trim().toLowerCase() === formData.level.trim().toLowerCase() &&
+          c.course.trim().toLowerCase() === formData.course.trim().toLowerCase()
+      );
+      if (duplicate) {
+        Swal.fire("Error", "A program with the same section, level, and course already exists.", "error");
+        return;
+      }
       const response = await apiFetch("insert", {
         method: "POST",
         body: JSON.stringify({ table: "class", data: formData }),

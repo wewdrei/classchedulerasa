@@ -136,8 +136,8 @@ const Sidebar = ({ collapsed }) => {
   // Helper to map role names to UI labels
   const getDisplayRole = (role) => {
     const r = role.toUpperCase();
-    if (r === "SUPERADMIN") return "Super Admin";
-    if (r === "ADMIN") return "Admin";
+    if (r === "SUPERADMIN") return "Manager";
+    if (r === "ADMIN") return "Staff";
     return role;
   };
 
