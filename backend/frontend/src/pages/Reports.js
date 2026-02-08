@@ -5,7 +5,8 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import MobileSidebar from "../components/MobileSidebar";
 import DataTable from "react-data-table-component";
-import { useReactToPrint } from "react-to-print";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 function Reports() {
     // Fixed teacher list for fallback
@@ -41,7 +42,7 @@ function Reports() {
   const [filteredSchedules, setFilteredSchedules] = useState([]);
 
   // Dropdown Data
-  const [users, setUsers] = useState([]); // Teachers
+  // Remove users state for filter dropdown, use fixedTeachers only
   const [classes, setClasses] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -62,21 +63,18 @@ function Reports() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [usersRes, classesRes, roomsRes, subjectsRes, schedulesRes] = await Promise.all([
-          fetch(process.env.REACT_APP_API_URL + "select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: "users" }) }),
+        const [classesRes, roomsRes, subjectsRes, schedulesRes] = await Promise.all([
           fetch(process.env.REACT_APP_API_URL + "select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: "class" }) }),
           fetch(process.env.REACT_APP_API_URL + "select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: "rooms" }) }),
           fetch(process.env.REACT_APP_API_URL + "select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: "subjects" }) }),
           fetch(process.env.REACT_APP_API_URL + "schedules")
         ]);
 
-        const usersData = await usersRes.json();
         const classesData = await classesRes.json();
         const roomsData = await roomsRes.json();
         const subjectsData = await subjectsRes.json();
         const schedulesData = await schedulesRes.json();
 
-        if (usersData.success) setUsers(usersData.data);
         if (classesData.success) setClasses(classesData.data);
         if (roomsData.success) setRooms(roomsData.data);
         if (subjectsData.success) setSubjects(subjectsData.data);
@@ -116,10 +114,36 @@ function Reports() {
     });
   };
 
-  const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
-    documentTitle: "Schedule Report",
-  });
+  // PDF download handler
+  const handlePrint = () => {
+    const doc = new jsPDF();
+    autoTable(doc, {
+      head: [["Day", "Time", "Subject", "Description", "Room", "Teacher", "Class"]],
+      body: filteredSchedules.map(row => [
+        row.day_of_week || "—",
+        `${formatTime(row.start_time)} - ${formatTime(row.end_time)}`,
+        row.subject?.subject_code || row.subject?.subject_name || "—",
+        row.subject?.subject_name || row.description || "—",
+        (() => {
+          const r = row.room;
+          if (!r) return "—";
+          const parts = [r.room_code, r.room_name].filter(Boolean);
+          return parts.length ? parts.join(" - ") : "—";
+        })(),
+        getTeacherLabel(row),
+        getClassLabel(row)
+      ]),
+      startY: 28,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [52, 58, 64] },
+      margin: { left: 14, right: 14 }
+    });
+    doc.setFontSize(16);
+    doc.text("Schedule Report", 14, 16);
+    doc.setFontSize(10);
+    doc.text(`Generated on ${new Date().toLocaleDateString()}`, 14, 22);
+    doc.save("schedule-report.pdf");
+  };
 
   const toggleSidebar = () => setCollapsed(!collapsed);
   const openMobileSidebar = () => setMobileSidebarOpen(true);
@@ -153,11 +177,7 @@ function Reports() {
     return [course, level && section ? `${level}-${section}` : ''].filter(Boolean).join(' ') || '—';
   };
   const getTeacherLabel = (row) => {
-    const t = row.teacher;
-    if (t && (t.name || t.first_name || t.last_name || t.email)) {
-      return t.name || [t.first_name, t.last_name].filter(Boolean).join(' ').trim() || t.email || '—';
-    }
-    // Fallback: match by teacher_id in fixed list
+    // Always resolve from fixedTeachers using teacher_id
     const match = fixedTeachers.find(u => String(u.id) === String(row.teacher_id));
     if (match) return match.name;
     return '—';
@@ -212,7 +232,7 @@ function Reports() {
                 <label className="form-label small fw-bold">Teacher</label>
                 <select className="form-select form-select-sm" name="teacher_id" value={filters.teacher_id} onChange={handleFilterChange}>
                   <option value="">All Teachers</option>
-                  {users.map(u => <option key={u.id} value={u.id}>{u.name || [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email || `User ${u.id}`}</option>)}
+                  {fixedTeachers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
               <div className="col-md-2">
