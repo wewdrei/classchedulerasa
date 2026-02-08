@@ -488,7 +488,7 @@ function CalendarPage() {
                   <div className="mb-3">
                     <label className="form-label">Type</label>
                     <select className="form-control" name="type" value={formData.type} onChange={handleChange}>
-                      <option value="Lecture">Lecture</option>
+                      <option value="Lecture">Regular</option>
                       <option value="Lab">Lab</option>
                       <option value="Exam">Exam</option>
                     </select>

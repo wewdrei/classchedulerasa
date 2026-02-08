@@ -54,6 +54,7 @@ class DashboardController extends Controller
             ->get()
             ->map(function ($item) {
                 return [
+                    'teacher_id' => $item->teacher_id,
                     'name' => $item->teacher->name ?? 'Unknown Teacher',
                     'count' => $item->total
                 ];

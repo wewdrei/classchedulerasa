@@ -41,6 +41,30 @@ ChartJS.register(
 );
 
 function Dashboard() {
+    // Fixed teacher list for fallback
+    const fixedTeachers = [
+      { id: 1, name: "Mr. Jessie Aneslagon" },
+      { id: 2, name: "Mr. Chae Dela Cruz" },
+      { id: 3, name: "Mr. Denmark P. Aduna" },
+      { id: 4, name: "Mr. Ronnel Reproto" },
+      { id: 5, name: "Mr. Kurt Arellano" },
+      { id: 6, name: "Mr Ace Abadenis" },
+      { id: 7, name: "Mr. Richard Carpio" },
+      { id: 8, name: "Mr. Shozu Abedenis" },
+      { id: 9, name: "Mr. Ronnel Manuel" },
+      { id: 10, name: "Ms. Shela Cruz" },
+      { id: 11, name: "Ms. Abby Manlangit" },
+      { id: 12, name: "Ms. Lorena Magsalong" },
+      { id: 13, name: "Ms. Annie Cameshorton" },
+      { id: 14, name: "Ms. Clarisse Ballesteros" },
+      { id: 15, name: "Ms. Andrea Dali" },
+      { id: 16, name: "Ms. Bennie Arlante" },
+      { id: 17, name: "Mr. Lorence Robin" },
+      { id: 18, name: "Mr. Pibels Aduna" },
+      { id: 19, name: "Mr. Lloyd Manabat" },
+      { id: 20, name: "Mr. Celherson Mesina" },
+      { id: 21, name: "Mr. Andrei Quirante" }
+    ];
   const user = sessionStorage.getItem("user") || "Guest";
   const [darkMode, toggleDarkMode] = useDarkMode();
   const [collapsed, setCollapsed] = useState(false);
@@ -51,6 +75,7 @@ function Dashboard() {
   const [stats, setStats] = useState({ users: 0, classes: 0, rooms: 0, schedules: 0, subjects: 0 });
   const [roomUtilization, setRoomUtilization] = useState([]);
   const [teacherWorkload, setTeacherWorkload] = useState([]);
+  const [users, setUsers] = useState([]);
   const [sectioningProgress, setSectioningProgress] = useState({ total: 0, scheduled: 0, percentage: 0 });
   const [scheduleStatus, setScheduleStatus] = useState([]);
   const [userRoles, setUserRoles] = useState([]);
@@ -64,6 +89,16 @@ function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+    // Fetch users for teacher name resolution
+    fetch(process.env.REACT_APP_API_URL + 'select', {
+      method: 'POST',
+      body: JSON.stringify({ table: 'users' }),
+      headers: { 'Content-Type': 'application/json' }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) setUsers(data.data);
+      });
   }, []);
 
   const fetchDashboardData = async () => {
@@ -95,7 +130,13 @@ function Dashboard() {
 
   // 1. Schedule Types (Status)
   const scheduleTypesData = {
-    labels: scheduleStatus.map(s => s.type || 'Unknown'),
+    labels: scheduleStatus.map(s => {
+      if (!s.type || s.type === 'Unknown') return 'Regular';
+      if (s.type === '1') return 'Special';
+      if (s.type === '2') return 'Exam';
+      if (s.type === '3') return 'Assignment';
+      return s.type;
+    }),
     datasets: [{
       label: 'Schedules by Type',
       data: scheduleStatus.map(s => s.total),
@@ -145,7 +186,21 @@ function Dashboard() {
 
   // 4. Teacher Workload (Top 5)
   const teacherWorkloadData = {
-    labels: teacherWorkload.map(t => t.name),
+    labels: teacherWorkload.map(t => {
+      // Try to match by teacher_id if available
+      if (t.teacher_id && Array.isArray(users)) {
+        const found = users.find(u => String(u.id) === String(t.teacher_id));
+        if (found && found.name) return found.name;
+      }
+      // Fallback to fixedTeachers if present
+      if (typeof fixedTeachers !== 'undefined' && t.teacher_id) {
+        const match = fixedTeachers.find(u => String(u.id) === String(t.teacher_id));
+        if (match && match.name) return match.name;
+      }
+      // Fallback to t.name if present and not 'Unknown Teacher'
+      if (t.name && t.name !== 'Unknown Teacher') return t.name;
+      return 'Unknown Teacher';
+    }),
     datasets: [{
       label: 'Classes Assigned',
       data: teacherWorkload.map(t => t.count),
