@@ -50,7 +50,29 @@ function CalendarPage() {
   const [rawSchedules, setRawSchedules] = useState([]); // Raw weekly schedules from API
 
   // Fixed teacher list for scheduling
-  const [users, setUsers] = useState([{ id: 1, name: "Jessie Aneslagon" }]); // Teachers
+  const [users, setUsers] = useState([
+    { id: 1, name: "Mr. Jessie Aneslagon" },
+    { id: 2, name: "Mr. Chae Dela Cruz" },
+    { id: 3, name: "Mr. Denmark P. Aduna" },
+    { id: 4, name: "Mr. Ronnel Reproto" },
+    { id: 5, name: "Mr. Kurt Arellano" },
+    { id: 6, name: "Mr Ace Abadenis" },
+    { id: 7, name: "Mr. Richard Carpio" },
+    { id: 8, name: "Mr. Shozu Abedenis" },
+    { id: 9, name: "Mr. Ronnel Manuel" },
+    { id: 10, name: "Ms. Shela Cruz" },
+    { id: 11, name: "Ms. Abby Manlangit" },
+    { id: 12, name: "Ms. Lorena Magsalong" },
+    { id: 13, name: "Ms. Annie Cameshorton" },
+    { id: 14, name: "Ms. Clarisse Ballesteros" },
+    { id: 15, name: "Ms. Andrea Dali" },
+    { id: 16, name: "Ms. Bennie Arlante" },
+    { id: 17, name: "Mr. Lorence Robin" },
+    { id: 18, name: "Mr. Pibels Aduna" },
+    { id: 19, name: "Mr. Lloyd Manabat" },
+    { id: 20, name: "Mr. Celherson Mesina" },
+    { id: 21, name: "Mr. Andrei Quirante" },
+  ]); // Teachers
   const [classes, setClasses] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -93,18 +115,30 @@ function CalendarPage() {
         const roomsData = await roomsRes.json();
         const subjectsData = await subjectsRes.json();
 
-        // Always ensure our fixed teacher exists in the dropdown
-        if (usersData.success && Array.isArray(usersData.data) && usersData.data.length > 0) {
-          // Try to find an existing user that matches Jessie; if not, keep the fixed one
-          const jessie = usersData.data.find(u => (u.name || '').toLowerCase() === 'jessie aneslagon');
-          if (jessie) {
-            setUsers([{ id: jessie.id, name: jessie.name }]);
-          } else {
-            setUsers([{ id: 1, name: "Jessie Aneslagon" }]);
-          }
-        } else {
-          setUsers([{ id: 1, name: "Jessie Aneslagon" }]);
-        }
+        // Always use the full teacher list with correct names
+        setUsers([
+          { id: 1, name: "Mr. Jessie Aneslagon" },
+          { id: 2, name: "Mr. Chae Dela Cruz" },
+          { id: 3, name: "Mr. Denmark P. Aduna" },
+          { id: 4, name: "Mr. Ronnel Reproto" },
+          { id: 5, name: "Mr. Kurt Arellano" },
+          { id: 6, name: "Mr Ace Abadenis" },
+          { id: 7, name: "Mr. Richard Carpio" },
+          { id: 8, name: "Mr. Shozu Abedenis" },
+          { id: 9, name: "Mr. Ronnel Manuel" },
+          { id: 10, name: "Ms. Shela Cruz" },
+          { id: 11, name: "Ms. Abby Manlangit" },
+          { id: 12, name: "Ms. Lorena Magsalong" },
+          { id: 13, name: "Ms. Annie Cameshorton" },
+          { id: 14, name: "Ms. Clarisse Ballesteros" },
+          { id: 15, name: "Ms. Andrea Dali" },
+          { id: 16, name: "Ms. Bennie Arlante" },
+          { id: 17, name: "Mr. Lorence Robin" },
+          { id: 18, name: "Mr. Pibels Aduna" },
+          { id: 19, name: "Mr. Lloyd Manabat" },
+          { id: 20, name: "Mr. Celherson Mesina" },
+          { id: 21, name: "Mr. Andrei Quirante" },
+        ]);
         if (classesData.success) setClasses(classesData.data);
         if (roomsData.success) setRooms(roomsData.data);
         if (subjectsData.success) setSubjects(subjectsData.data);
