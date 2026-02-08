@@ -28,7 +28,30 @@ function Masterlist() {
   const [scheduleClasses, setScheduleClasses] = useState([]);
   const [scheduleRooms, setScheduleRooms] = useState([]);
   const [scheduleSubjects, setScheduleSubjects] = useState([]);
-  const [scheduleTeachers, setScheduleTeachers] = useState([]);
+  // Fixed teacher list for scheduling
+  const [scheduleTeachers, setScheduleTeachers] = useState([
+    { id: 1, name: "Mr. Jessie Aneslagon" },
+    { id: 2, name: "Mr. Chae Dela Cruz" },
+    { id: 3, name: "Mr. Denmark P. Aduna" },
+    { id: 4, name: "Mr. Ronnel Reproto" },
+    { id: 5, name: "Mr. Kurt Arellano" },
+    { id: 6, name: "Mr Ace Abadenis" },
+    { id: 7, name: "Mr. Richard Carpio" },
+    { id: 8, name: "Mr. Shozu Abedenis" },
+    { id: 9, name: "Mr. Ronnel Manuel" },
+    { id: 10, name: "Ms. Shela Cruz" },
+    { id: 11, name: "Ms. Abby Manlangit" },
+    { id: 12, name: "Ms. Lorena Magsalong" },
+    { id: 13, name: "Ms. Annie Cameshorton" },
+    { id: 14, name: "Ms. Clarisse Ballesteros" },
+    { id: 15, name: "Ms. Andrea Dali" },
+    { id: 16, name: "Ms. Bennie Arlante" },
+    { id: 17, name: "Mr. Lorence Robin" },
+    { id: 18, name: "Mr. Pibels Aduna" },
+    { id: 19, name: "Mr. Lloyd Manabat" },
+    { id: 20, name: "Mr. Celherson Mesina" },
+    { id: 21, name: "Mr. Andrei Quirante" },
+  ]);
   const [scheduleDataLoading, setScheduleDataLoading] = useState(false);
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [scheduleForm, setScheduleForm] = useState({
@@ -85,22 +108,20 @@ function Masterlist() {
     setScheduleModalOpen(true);
     setScheduleDataLoading(true);
     try {
-      const [classesRes, roomsRes, subjectsRes, usersRes] = await Promise.all([
+      const [classesRes, roomsRes, subjectsRes] = await Promise.all([
         apiFetch("select", { method: "POST", body: JSON.stringify({ table: "class" }) }),
         apiFetch("select", { method: "POST", body: JSON.stringify({ table: "rooms" }) }),
         apiFetch("subjects"),
-        apiFetch("select", { method: "POST", body: JSON.stringify({ table: "users" }) }),
       ]);
       const classesData = await classesRes.json();
       const roomsData = await roomsRes.json();
       const subjectsData = await subjectsRes.json();
-      const usersData = await usersRes.json();
       if (classesData.success) setScheduleClasses(classesData.data || []);
       if (roomsData.success) setScheduleRooms(roomsData.data || []);
       if (Array.isArray(subjectsData)) setScheduleSubjects(subjectsData);
       else if (subjectsData?.data) setScheduleSubjects(subjectsData.data || []);
       else setScheduleSubjects([]);
-      if (usersData.success) setScheduleTeachers(usersData.data || []);
+      // scheduleTeachers is now static
     } catch (err) {
       console.error("Error loading schedule data:", err);
       Swal.fire({ icon: "error", title: "Error", text: "Failed to load classes, rooms, or subjects." });

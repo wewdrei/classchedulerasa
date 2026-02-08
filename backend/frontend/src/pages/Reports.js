@@ -8,6 +8,30 @@ import DataTable from "react-data-table-component";
 import { useReactToPrint } from "react-to-print";
 
 function Reports() {
+    // Fixed teacher list for fallback
+    const fixedTeachers = [
+      { id: 1, name: "Mr. Jessie Aneslagon" },
+      { id: 2, name: "Mr. Chae Dela Cruz" },
+      { id: 3, name: "Mr. Denmark P. Aduna" },
+      { id: 4, name: "Mr. Ronnel Reproto" },
+      { id: 5, name: "Mr. Kurt Arellano" },
+      { id: 6, name: "Mr Ace Abadenis" },
+      { id: 7, name: "Mr. Richard Carpio" },
+      { id: 8, name: "Mr. Shozu Abedenis" },
+      { id: 9, name: "Mr. Ronnel Manuel" },
+      { id: 10, name: "Ms. Shela Cruz" },
+      { id: 11, name: "Ms. Abby Manlangit" },
+      { id: 12, name: "Ms. Lorena Magsalong" },
+      { id: 13, name: "Ms. Annie Cameshorton" },
+      { id: 14, name: "Ms. Clarisse Ballesteros" },
+      { id: 15, name: "Ms. Andrea Dali" },
+      { id: 16, name: "Ms. Bennie Arlante" },
+      { id: 17, name: "Mr. Lorence Robin" },
+      { id: 18, name: "Mr. Pibels Aduna" },
+      { id: 19, name: "Mr. Lloyd Manabat" },
+      { id: 20, name: "Mr. Celherson Mesina" },
+      { id: 21, name: "Mr. Andrei Quirante" },
+    ];
   const user = sessionStorage.getItem("user") || "Guest";
   const [darkMode, toggleDarkMode] = useDarkMode();
   const [collapsed, setCollapsed] = useState(false);
@@ -118,8 +142,13 @@ function Reports() {
   };
   const getTeacherLabel = (row) => {
     const t = row.teacher;
-    if (!t) return '—';
-    return t.name || [t.first_name, t.last_name].filter(Boolean).join(' ').trim() || t.email || '—';
+    if (t && (t.name || t.first_name || t.last_name || t.email)) {
+      return t.name || [t.first_name, t.last_name].filter(Boolean).join(' ').trim() || t.email || '—';
+    }
+    // Fallback: match by teacher_id in fixed list
+    const match = fixedTeachers.find(u => String(u.id) === String(row.teacher_id));
+    if (match) return match.name;
+    return '—';
   };
 
   const columns = [
