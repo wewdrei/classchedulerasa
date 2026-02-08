@@ -1,0 +1,120 @@
+.sidebar {
+  background: #131e6b;
+  color: #fff;
+  min-height: 100vh;
+  width: var(--sidebar-width, 280px);
+  transition: width 0.2s;
+  /* Keep the sidebar fixed to the left so main content can flow beside it */
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  z-index: 1050;
+  overflow-y: auto;
+}
+
+.sidebar.collapsed {
+  width: var(--sidebar-width-collapsed, 80px);
+}
+
+.sidebar-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 0 16px 0;
+}
+
+.sidebar-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  font-size: 2rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  border: 2px solid rgba(255,255,255,0.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.sidebar.collapsed .sidebar-avatar {
+  width: 48px;
+  height: 48px;
+  font-size: 1.3rem;
+}
+
+.sidebar-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+  text-align: center;
+}
+
+.sidebar-email {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  text-align: center;
+}
+
+.sidebar-role {
+  font-size: 0.85rem;
+  opacity: 0.6;
+  text-align: center;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.12);
+  margin: 12px 0;
+}
+
+.sidebar-section {
+  margin-bottom: 18px;
+}
+
+.sidebar-section h6 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin: 0 0 8px 18px;
+  opacity: 0.7;
+  letter-spacing: 1px;
+}
+
+.sidebar-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-link {
+  padding: 8px 18px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #fff;
+  transition: background 0.15s, color 0.15s;
+  cursor: pointer;
+}
+
+.sidebar-link.active {
+  background: rgba(255,255,255,0.13);
+  color: #ffd700;
+}
+
+.sidebar-link:hover {
+  background: rgba(255,255,255,0.09);
+  color: #ffd700;
+}
+
+.sidebar.collapsed .sidebar-link {
+  padding: 10px 0;
+}
+
+.sidebar.collapsed .sidebar-section h6,
+.sidebar.collapsed .sidebar-link span {
+  display: none;
+}
+
